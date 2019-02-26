@@ -6,4 +6,6 @@ go install $GOPATH/src/github.com/Beeketing/protoc-gen-beeswagger
 ```
 
 # Using 
+```sh
 protoc --beeswagger_out=logtostderr=true:. <proto_path>
+```
