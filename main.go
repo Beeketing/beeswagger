@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/Beeketing/protoc-gen-beeswagger/genswagger"
 	"os"
 	"strings"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/grpc-ecosystem/grpc-gateway/codegenerator"
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-beeswagger/genswagger"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
 )
 
