@@ -3,7 +3,7 @@ package genswagger
 import (
 	"encoding/json"
 	"fmt"
-	beeswaggeroptions "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-beeswagger/options"
+	beeswaggeroptions "github.com/Beeketing/protoc-gen-beeswagger/options"
 	"os"
 	"reflect"
 	"regexp"

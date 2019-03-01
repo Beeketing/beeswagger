@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package grpc.gateway.protoc_gen_beeswagger.options;
+package protoc_gen_beeswagger.options;
 
-option go_package = "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-beeswagger/options";
+option go_package = "github.com/Beeketing/protoc-gen-beeswagger/options";
 
 import "protoc-gen-beeswagger/options/openapiv2.proto";
 import "google/protobuf/descriptor.proto";

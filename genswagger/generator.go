@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Beeketing/protoc-gen-beeswagger/internal"
 	"path/filepath"
 	"strings"
 
@@ -14,8 +15,8 @@ import (
 	protocdescriptor "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/grpc-ecosystem/grpc-gateway/internal"
-	swagger_options "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-beeswagger/options"
+
+	swagger_options "github.com/Beeketing/protoc-gen-beeswagger/options"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/descriptor"
 	gen "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/generator"
 )
