@@ -11,4 +11,5 @@ protoc --beeswagger_out=logtostderr=true:. <proto_path>
 ```
 
 # Note
-Using comment of field (service) for description of this field (service) 
+- Using comment of field (service) for description of this field (service)
+- Swagger file will be gen in same direction of proto file
