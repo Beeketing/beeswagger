@@ -181,28 +181,39 @@ func queryParams(message *descriptor.Message, field *descriptor.Field, prefix st
 	return params, nil
 }
 
+func appendAllMessagesAndEnumerations(p param, messageMaps messageMap) {
+	for index, msg := range p.Messages {
+		if skipRenderingRef(msg.FQMN()) {
+			continue
+		}
+		if _, ok := messageMaps[msg.FQMN()]; !ok {
+			messageMaps[msg.FQMN()] = p.Messages[index]
+		}
+	}
+}
+
 // findServicesMessagesAndEnumerations discovers all messages and enums defined in the RPC methods of the service.
-func findServicesMessagesAndEnumerations(s []*descriptor.Service, reg *descriptor.Registry, m messageMap, ms messageMap, e enumMap, refs refMap) {
+func findServicesMessagesAndEnumerations(s []*descriptor.Service, reg *descriptor.Registry, messageMaps messageMap, ms messageMap, e enumMap, refs refMap) {
 	for _, svc := range s {
 		for _, meth := range svc.Methods {
 			// Request may be fully included in query
 			if _, ok := refs[fmt.Sprintf("#/definitions/%s", fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg))]; ok {
 				if !skipRenderingRef(meth.RequestType.FQMN()) {
-					m[fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)] = meth.RequestType
+					messageMaps[fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)] = meth.RequestType
 				}
 			}
-			findNestedMessagesAndEnumerations(meth.RequestType, reg, m, e)
+			findNestedMessagesAndEnumerations(meth.RequestType, reg, messageMaps, e)
 
 			if !skipRenderingRef(meth.ResponseType.FQMN()) {
-				m[fullyQualifiedNameToSwaggerName(meth.ResponseType.FQMN(), reg)] = meth.ResponseType
+				messageMaps[fullyQualifiedNameToSwaggerName(meth.ResponseType.FQMN(), reg)] = meth.ResponseType
 				if meth.GetServerStreaming() {
 					runtimeStreamError := fullyQualifiedNameToSwaggerName(".grpc.gateway.runtime.StreamError", reg)
 					glog.V(1).Infof("StreamError FQMN: %s", runtimeStreamError)
 					streamError, err := reg.LookupMsg(".grpc.gateway.runtime", "StreamError")
 					if err == nil {
 						glog.V(1).Infof("StreamError: %v", streamError)
-						m[runtimeStreamError] = streamError
-						findNestedMessagesAndEnumerations(streamError, reg, m, e)
+						messageMaps[runtimeStreamError] = streamError
+						findNestedMessagesAndEnumerations(streamError, reg, messageMaps, e)
 					} else {
 						//just in case there is an error looking up StreamError
 						glog.Error(err)
@@ -210,7 +221,7 @@ func findServicesMessagesAndEnumerations(s []*descriptor.Service, reg *descripto
 					ms[fullyQualifiedNameToSwaggerName(meth.ResponseType.FQMN(), reg)] = meth.ResponseType
 				}
 			}
-			findNestedMessagesAndEnumerations(meth.ResponseType, reg, m, e)
+			findNestedMessagesAndEnumerations(meth.ResponseType, reg, messageMaps, e)
 		}
 	}
 }
@@ -747,7 +758,7 @@ func renderServicesCustom(services []*descriptor.Service, paths swaggerPathsObje
 			var pathItemObject = swaggerPathItemObject{}
 			pathItemObject.Post = operationObject
 
-			paths["/" + templateToSwaggerPath(*meth.MethodDescriptorProto.Name)] = pathItemObject
+			paths["/"+templateToSwaggerPath(*meth.MethodDescriptorProto.Name)] = pathItemObject
 		}
 	}
 	return nil
@@ -1100,6 +1111,8 @@ func applyTemplate(p param) (*swaggerObject, error) {
 	ms := messageMap{}
 	e := enumMap{}
 	findServicesMessagesAndEnumerations(p.Services, p.reg, m, ms, e, requestResponseRefs)
+	appendAllMessagesAndEnumerations(p, m)
+	//s.Definitions[]
 	renderMessagesAsDefinition(m, s.Definitions, p.reg, customRefs)
 	renderMessagesAsStreamDefinition(ms, s.StreamDefinitions, p.reg)
 	renderEnumerationsAsDefinition(e, s.Definitions, p.reg)
@@ -1306,7 +1319,7 @@ func applyTemplate(p param) (*swaggerObject, error) {
 		s.Info.Title = *p.FileDescriptorProto.Name
 		strSp := strings.Split(s.Info.Title, "/")
 		if len(strSp) > 0 {
-			s.Info.Title = strSp[len(strSp) - 1]
+			s.Info.Title = strSp[len(strSp)-1]
 		}
 	}
 
