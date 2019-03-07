@@ -1117,7 +1117,7 @@ func applyTemplate(p param) (*swaggerObject, error) {
 	ms := messageMap{}
 	e := enumMap{}
 	findServicesMessagesAndEnumerations(p.Services, p.reg, m, ms, e, requestResponseRefs)
-	appendAllMessagesAndEnumerations(p, m)
+	//appendAllMessagesAndEnumerations(p, m)
 	//s.Definitions[]
 	renderMessagesAsDefinition(m, s.Definitions, p.reg, customRefs)
 	renderMessagesAsStreamDefinition(ms, s.StreamDefinitions, p.reg)
