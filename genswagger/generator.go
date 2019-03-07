@@ -133,13 +133,15 @@ func (g *generator) Generate(targets []*descriptor.File) ([]*plugin.CodeGenerato
 	} else {
 		for _, file := range swaggers {
 			files = append(files, encodeSwagger(file))
+			//a := *files[0].Content
+			//fmt.Println(a)
 			glog.V(1).Infof("New swagger file will emit")
 		}
 	}
 	return files, nil
 }
 
-func ObjToString(input interface{}) string{
+func ObjToString(input interface{}) string {
 	b, _ := json.Marshal(input)
 	return string(b)
 }

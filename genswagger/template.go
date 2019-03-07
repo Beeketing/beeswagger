@@ -270,8 +270,11 @@ func renderMessagesAsDefinition(messages messageMap, d swaggerDefinitionsObject,
 			},
 		}
 		msgComments := protoComments(reg, msg.File, msg.Outers, "MessageType", int32(msg.Index))
-		if err := updateSwaggerDataFromComments(&schema, msgComments, false); err != nil {
-			panic(err)
+		if msgComments != "" {
+			//if err := updateSwaggerDataFromComments(&schema, msgComments, false); err != nil {
+			//	panic(err)
+			//}
+			updateDataOfSchemaFromComment(&schema, msgComments)
 		}
 		opts, err := extractSchemaOptionFromMessageDescriptor(msg.DescriptorProto)
 		if err != nil {
@@ -314,8 +317,11 @@ func renderMessagesAsDefinition(messages messageMap, d swaggerDefinitionsObject,
 		for _, f := range msg.Fields {
 			fieldValue := schemaOfField(f, reg, customRefs)
 			comments := fieldProtoComments(reg, msg, f)
-			if err := updateSwaggerDataFromComments(&fieldValue, comments, false); err != nil {
-				panic(err)
+			if comments != "" {
+				if err := updateSwaggerDataFromComments(&fieldValue, comments, false); err != nil {
+					panic(err)
+				}
+				updateDataOfSchemaFromComment(&fieldValue, comments)
 			}
 
 			kv := keyVal{Value: fieldValue}
@@ -1346,7 +1352,6 @@ func updateSwaggerDataFromComments(swaggerObject interface{}, comment string, is
 	if len(comment) == 0 {
 		return nil
 	}
-
 	// Figure out what to apply changes to.
 	swaggerObjectValue := reflect.ValueOf(swaggerObject)
 	infoObjectValue := swaggerObjectValue.Elem().FieldByName("Info")
@@ -1400,6 +1405,55 @@ func updateSwaggerDataFromComments(swaggerObject interface{}, comment string, is
 	}
 
 	return fmt.Errorf("no description nor summary property")
+}
+
+var rBeeComment = regexp.MustCompile(`^\s*@([a-z0-9_]+)[:]*\s*(.*)$`)
+var tagSupports = map[string]bool{"required": true, "description": true, "example": true, "valid": true, "title": true}
+
+func updateDataOfSchemaFromComment(swaggerSchema *swaggerSchemaObject, commentStr string) {
+	comments := strings.Split(commentStr, "\n")
+	for _, comment := range comments {
+		field, value := tagFromComment(comment)
+		switch field {
+		case "description":
+			swaggerSchema.Description = value
+		case "title":
+			swaggerSchema.Title = value
+		case "valid":
+			switch swaggerSchema.Type {
+			case "array":
+				if swaggerSchema.Items != nil {
+					if swaggerSchema.Items.Type == "integer" || swaggerSchema.Type == "number" ||
+						swaggerSchema.Type == "string" {
+						swaggerSchema.Items.Enum = strings.Split(value, ",")
+					}
+				}
+			case "integer", "number", "string":
+				swaggerSchema.Enum = strings.Split(value, ",")
+			}
+		case "example":
+			swaggerSchema.Example = []byte(value)
+		case "require":
+			if strings.Contains(value, "true") {
+				//swaggerSchema.
+			}
+		}
+	}
+}
+
+//func
+
+func tagFromComment(comment string) (field, value string) {
+	match := rBeeComment.FindStringSubmatch(comment)
+	if len(match) == 3 {
+		if match[1] == "required" {
+			return `required`, "true"
+		}
+		if _, ok := tagSupports[match[1]]; ok {
+			return match[1], strings.Trim(match[2], ",: \"")
+		}
+	}
+	return
 }
 
 func fieldProtoComments(reg *descriptor.Registry, msg *descriptor.Message, field *descriptor.Field) string {
