@@ -104,9 +104,10 @@ func queryParams(message *descriptor.Message, field *descriptor.Field, prefix st
 	fieldType := field.GetTypeName()
 	if message.File != nil {
 		comments := fieldProtoComments(reg, message, field)
-		if err := updateSwaggerDataFromComments(&schema, comments, false); err != nil {
-			return nil, err
-		}
+		updateDataOfSchemaFromComment(&schema, comments)
+		//if err := updateSwaggerDataFromComments(&schema, comments, false); err != nil {
+		//	return nil, err
+		//}
 	}
 
 	isEnum := field.GetType() == pbdescriptor.FieldDescriptorProto_TYPE_ENUM
@@ -318,9 +319,9 @@ func renderMessagesAsDefinition(messages messageMap, d swaggerDefinitionsObject,
 			fieldValue := schemaOfField(f, reg, customRefs)
 			comments := fieldProtoComments(reg, msg, f)
 			if comments != "" {
-				if err := updateSwaggerDataFromComments(&fieldValue, comments, false); err != nil {
-					panic(err)
-				}
+				//if err := updateSwaggerDataFromComments(&fieldValue, comments, false); err != nil {
+				//	panic(err)
+				//}
 				updateDataOfSchemaFromComment(&fieldValue, comments)
 			}
 
@@ -525,8 +526,11 @@ func renderEnumerationsAsDefinition(enums enumMap, d swaggerDefinitionsObject, r
 				Default: defaultValue,
 			},
 		}
-		if err := updateSwaggerDataFromComments(&enumSchemaObject, enumComments, false); err != nil {
-			panic(err)
+		//if err := updateSwaggerDataFromComments(&enumSchemaObject, enumComments, false); err != nil {
+		//	panic(err)
+		//}
+		if enumComments != "" {
+			updateDataOfSchemaFromComment(&enumSchemaObject, enumComments)
 		}
 
 		d[fullyQualifiedNameToSwaggerName(enum.FQEN(), reg)] = enumSchemaObject
@@ -705,8 +709,11 @@ func renderServicesCustom(services []*descriptor.Service, paths swaggerPathsObje
 			}
 			methProtoPath := protoPathIndex(reflect.TypeOf((*pbdescriptor.ServiceDescriptorProto)(nil)), "Method")
 			methComments := protoComments(reg, svc.File, nil, "Method", int32(svcIdx), methProtoPath, int32(methIdx))
-			if err := updateSwaggerDataFromComments(operationObject, methComments, false); err != nil {
-				panic(err)
+			//if err := updateSwaggerDataFromComments(operationObject, methComments, false); err != nil {
+			//	panic(err)
+			//}
+			if methComments != "" {
+				updateDataOfOperationFromComment(operationObject, methComments)
 			}
 			opts, err := extractOperationOptionFromMethodDescriptor(meth.MethodDescriptorProto)
 			if opts != nil {
@@ -1000,8 +1007,11 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 				}
 
 				methComments := protoComments(reg, svc.File, nil, "Method", int32(svcIdx), methProtoPath, int32(methIdx))
-				if err := updateSwaggerDataFromComments(operationObject, methComments, false); err != nil {
-					panic(err)
+				//if err := updateSwaggerDataFromComments(operationObject, methComments, false); err != nil {
+				//	panic(err)
+				//}
+				if methComments != "" {
+					updateDataOfOperationFromComment(operationObject, methComments)
 				}
 
 				opts, err := extractOperationOptionFromMethodDescriptor(meth.MethodDescriptorProto)
@@ -1129,7 +1139,6 @@ func applyTemplate(p param) (*swaggerObject, error) {
 	if err := updateSwaggerDataFromComments(&s, packageComments, true); err != nil {
 		panic(err)
 	}
-
 	// There may be additional options in the swagger option in the proto.
 	spb, err := extractSwaggerOptionFromFileDescriptor(p.FileDescriptorProto)
 	if err != nil {
@@ -1408,7 +1417,9 @@ func updateSwaggerDataFromComments(swaggerObject interface{}, comment string, is
 }
 
 var rBeeComment = regexp.MustCompile(`^\s*@([a-z0-9_]+)[:]*\s*(.*)$`)
-var tagSupports = map[string]bool{"required": true, "description": true, "example": true, "valid": true, "title": true}
+var tagSupports = map[string]bool{"required": true, "description": true,
+	"example": true, "valid": true, "title": true, "deprecated": true, "default": true,
+	"summary": true}
 
 func updateDataOfSchemaFromComment(swaggerSchema *swaggerSchemaObject, commentStr string) {
 	comments := strings.Split(commentStr, "\n")
@@ -1435,8 +1446,33 @@ func updateDataOfSchemaFromComment(swaggerSchema *swaggerSchemaObject, commentSt
 			swaggerSchema.Example = []byte(value)
 		case "require":
 			if strings.Contains(value, "true") {
-				//swaggerSchema.
+
 			}
+		case "default":
+			swaggerSchema.Default = value
+		}
+	}
+}
+
+func updateDataOfOperationFromComment(swaggerOperation *swaggerOperationObject, commentStr string) {
+	comments := strings.Split(commentStr, "\n")
+	for _, comment := range comments {
+		if strings.Trim(comment, ` \`) == "Deprecated" {
+			swaggerOperation.Deprecated = true
+			continue
+		}
+		field, value := tagFromComment(comment)
+		switch field {
+		case "description":
+			swaggerOperation.Description = value
+		case "title":
+			swaggerOperation.OperationID = value
+		case "deprecated":
+			if strings.Contains(value, "true") {
+				swaggerOperation.Deprecated = true
+			}
+		case "summary":
+			swaggerOperation.Summary = value
 		}
 	}
 }
